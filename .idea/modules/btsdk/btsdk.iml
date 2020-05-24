@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module external.linked.project.id=":btsdk" external.linked.project.path="$MODULE_DIR$/../../../btsdk" external.root.project.path="$MODULE_DIR$/../../.." external.system.id="GRADLE" external.system.module.group="btprinter" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../../btsdk">
+      <excludeFolder url="file://$MODULE_DIR$/../../../btsdk/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../btsdk/build" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

@@ -11,6 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_scan_bluetooth: ^1.1.0
 
   btprinter:
     # When depending on this package from a real application you should use:

@@ -1,15 +1,16 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+
+import 'package:streams_channel/streams_channel.dart';
+
 
 class Btprinter {
   static const MethodChannel _channel =
       const MethodChannel('btprinter');
 
-  static Future<String> get platformVersion async {
-    final String version = await _channel.invokeMethod('getPlatformVersion');
-    return version;
-  }
+  static StreamsChannel _streamChannel=StreamsChannel('btprinter_stream');
 
   static Future<List<String>> discoveryPariedDevices() async {
     final List<dynamic> BTList = await _channel.invokeMethod('discoveryPariedDevices');
@@ -41,6 +42,26 @@ class Btprinter {
     args.putIfAbsent("barcodeString", () => barcodeString);
     final String printResult = await _channel.invokeMethod('printBarcode', args);
     return printResult;
+  }
+
+  static Future<String> printQrCode(String qrString) async {
+    Map<String, dynamic> args = <String, dynamic>{};
+    args.putIfAbsent("qrString", () => qrString);
+    final String printResult = await _channel.invokeMethod('printQrCode', args);
+    return printResult;
+  }
+
+  static void getBtPrinterStream(String argument){
+    print('begin:getBtPrinterStream');
+    WidgetsFlutterBinding.ensureInitialized();
+    _streamChannel.receiveBroadcastStream(argument)
+        .listen((i) {print('the stream said $i');});
+    print('after listening');
+  }
+
+  static Stream<int> getBtPrinterStream_returnStream(String argument) {
+    WidgetsFlutterBinding.ensureInitialized();
+    return _streamChannel.receiveBroadcastStream(argument).map<int>((v) => (v) );
   }
 
 }

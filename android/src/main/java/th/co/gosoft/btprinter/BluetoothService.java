@@ -5,7 +5,9 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 
 import java.io.IOException;
@@ -39,10 +41,12 @@ public class BluetoothService {
     public static final int STATE_CONNECTED = 3;  // now connected to a remote device
 
     public static String ErrorMessage = "No_Error_Message";
+
     /**
      * Constructor. Prepares a new BTPrinter session.
-     * @param context  The UI Activity Context
-     * @param handler  A Handler to send messages back to the UI Activity
+     *
+     * @param context The UI Activity Context
+     * @param handler A Handler to send messages back to the UI Activity
      */
     public BluetoothService(Context context, Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -53,32 +57,41 @@ public class BluetoothService {
 
     /**
      * Set the current state of the connection
-     * @param state  An integer defining the current connection state
+     *
+     * @param state An integer defining the current connection state
      */
     private synchronized void setState(int state) {
         mState = state;
 
         // Give the new state to the Handler so the UI Activity can update
-//        mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+        mHandler.obtainMessage(BtprinterPlugin.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
     }
 
     /**
-     * Return the current connection state. */
+     * Return the current connection state.
+     */
     public synchronized int getState() {
         return mState;
     }
 
     /**
      * Start the service. Specifically start AcceptThread to begin a
-     * session in listening (server) mode. Called by the Activity onResume() */
+     * session in listening (server) mode. Called by the Activity onResume()
+     */
     public synchronized void start() {
         if (DEBUG) Log.d(TAG, "start");
 
         // Cancel any thread attempting to make a connection
-        if (mConnectThread != null) {mConnectThread.cancel(); mConnectThread = null;}
+        if (mConnectThread != null) {
+            mConnectThread.cancel();
+            mConnectThread = null;
+        }
 
         // Cancel any thread currently running a connection
-        if (mConnectedThread != null) {mConnectedThread.cancel(); mConnectedThread = null;}
+        if (mConnectedThread != null) {
+            mConnectedThread.cancel();
+            mConnectedThread = null;
+        }
 
         // Start the thread to listen on a BluetoothServerSocket
         if (mAcceptThread == null) {
@@ -90,18 +103,25 @@ public class BluetoothService {
 
     /**
      * Start the ConnectThread to initiate a connection to a remote device.
-     * @param device  The BluetoothDevice to connect
+     *
+     * @param device The BluetoothDevice to connect
      */
     public synchronized void connect(BluetoothDevice device) {
         if (DEBUG) Log.d(TAG, "connect to: " + device);
 
         // Cancel any thread attempting to make a connection
         if (mState == STATE_CONNECTING) {
-            if (mConnectThread != null) {mConnectThread.cancel(); mConnectThread = null;}
+            if (mConnectThread != null) {
+                mConnectThread.cancel();
+                mConnectThread = null;
+            }
         }
 
         // Cancel any thread currently running a connection
-        if (mConnectedThread != null) {mConnectedThread.cancel(); mConnectedThread = null;}
+        if (mConnectedThread != null) {
+            mConnectedThread.cancel();
+            mConnectedThread = null;
+        }
 
         // Start the thread to connect with the given device
         mConnectThread = new ConnectThread(device);
@@ -111,31 +131,41 @@ public class BluetoothService {
 
     /**
      * Start the ConnectedThread to begin managing a Bluetooth connection
-     * @param socket  The BluetoothSocket on which the connection was made
-     * @param device  The BluetoothDevice that has been connected
+     *
+     * @param socket The BluetoothSocket on which the connection was made
+     * @param device The BluetoothDevice that has been connected
      */
     public synchronized void connected(BluetoothSocket socket, BluetoothDevice device) {
         if (DEBUG) Log.d(TAG, "connected");
 
         // Cancel the thread that completed the connection
-        if (mConnectThread != null) {mConnectThread.cancel(); mConnectThread = null;}
+        if (mConnectThread != null) {
+            mConnectThread.cancel();
+            mConnectThread = null;
+        }
 
         // Cancel any thread currently running a connection
-        if (mConnectedThread != null) {mConnectedThread.cancel(); mConnectedThread = null;}
+        if (mConnectedThread != null) {
+            mConnectedThread.cancel();
+            mConnectedThread = null;
+        }
 
         // Cancel the accept thread because we only want to connect to one device
-        if (mAcceptThread != null) {mAcceptThread.cancel(); mAcceptThread = null;}
+        if (mAcceptThread != null) {
+            mAcceptThread.cancel();
+            mAcceptThread = null;
+        }
 
         // Start the thread to manage the connection and perform transmissions
         mConnectedThread = new ConnectedThread(socket);
         mConnectedThread.start();
 
         // Send the name of the connected device back to the UI Activity
-//        Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_DEVICE_NAME);
-//        Bundle bundle = new Bundle();
-//        bundle.putString(MainActivity.DEVICE_NAME, device.getName());
-//        msg.setData(bundle);
-//        mHandler.sendMessage(msg);
+        Message msg = mHandler.obtainMessage(BtprinterPlugin.MESSAGE_DEVICE_NAME);
+        Bundle bundle = new Bundle();
+        bundle.putString(BtprinterPlugin.DEVICE_NAME, device.getName());
+        msg.setData(bundle);
+        mHandler.sendMessage(msg);
 
         setState(STATE_CONNECTED);
     }
@@ -146,13 +176,23 @@ public class BluetoothService {
     public synchronized void stop() {
         if (DEBUG) Log.d(TAG, "stop");
         setState(STATE_NONE);
-        if (mConnectThread != null) {mConnectThread.cancel(); mConnectThread = null;}
-        if (mConnectedThread != null) {mConnectedThread.cancel(); mConnectedThread = null;}
-        if (mAcceptThread != null) {mAcceptThread.cancel(); mAcceptThread = null;}
+        if (mConnectThread != null) {
+            mConnectThread.cancel();
+            mConnectThread = null;
+        }
+        if (mConnectedThread != null) {
+            mConnectedThread.cancel();
+            mConnectedThread = null;
+        }
+        if (mAcceptThread != null) {
+            mAcceptThread.cancel();
+            mAcceptThread = null;
+        }
     }
 
     /**
      * Write to the ConnectedThread in an unsynchronized manner
+     *
      * @param out The bytes to write
      * @see ConnectedThread#write(byte[])
      */
@@ -174,11 +214,11 @@ public class BluetoothService {
         setState(STATE_LISTEN);
 
         // Send a failure message back to the Activity
-//        Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
-//        Bundle bundle = new Bundle();
-//        bundle.putString(MainActivity.TOAST, "Unable to connect device");
-//        msg.setData(bundle);
-//        mHandler.sendMessage(msg);
+        Message msg = mHandler.obtainMessage(BtprinterPlugin.MESSAGE_TOAST);
+        Bundle bundle = new Bundle();
+//        bundle.putString(BtprinterPlugin.TOAST, "Unable to connect device");
+        msg.setData(bundle);
+        mHandler.sendMessage(msg);
     }
 
     /**
@@ -372,20 +412,16 @@ public class BluetoothService {
                     byte[] buffer = new byte[256];
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
-                    if(bytes>0)
-                    {
-//                        // Send the obtained bytes to the UI Activity
-//                        mHandler.obtainMessage(MainActivity.MESSAGE_READ, bytes, -1, buffer)
-//                                .sendToTarget();
-                    }
-                    else
-                    {
+                    if (bytes > 0) {
+                        // Send the obtained bytes to the UI Activity
+                        mHandler.obtainMessage(BtprinterPlugin.MESSAGE_READ, bytes, -1, buffer)
+                                .sendToTarget();
+                    } else {
                         Log.e(TAG, "disconnected");
                         connectionLost();
 
                         //add by chongqing jinou
-                        if(mState != STATE_NONE)
-                        {
+                        if (mState != STATE_NONE) {
                             Log.e(TAG, "disconnected");
                             // Start the service over to restart listening mode
                             BluetoothService.this.start();
@@ -397,8 +433,7 @@ public class BluetoothService {
                     connectionLost();
 
                     //add by chongqing jinou
-                    if(mState != STATE_NONE)
-                    {
+                    if (mState != STATE_NONE) {
                         // Start the service over to restart listening mode
                         BluetoothService.this.start();
                     }
@@ -409,7 +444,8 @@ public class BluetoothService {
 
         /**
          * Write to the connected OutStream.
-         * @param buffer  The bytes to write
+         *
+         * @param buffer The bytes to write
          */
         public void write(byte[] buffer) {
             try {
@@ -420,10 +456,10 @@ public class BluetoothService {
                   byte[] readata = new byte[1];
                   SPPReadTimeout(readata, 1, 5000);
                 }*/
-                Log.i("BTPWRITE", new String(buffer,"GBK"));
-//                // Share the sent message back to the UI Activity
-//                mHandler.obtainMessage(MainActivity.MESSAGE_WRITE, -1, -1, buffer)
-//                        .sendToTarget();
+                Log.i("BTPWRITE", new String(buffer, "GBK"));
+                // Share the sent message back to the UI Activity
+                mHandler.obtainMessage(BtprinterPlugin.MESSAGE_WRITE, -1, -1, buffer)
+                        .sendToTarget();
             } catch (IOException e) {
                 Log.e(TAG, "Exception during write", e);
             }

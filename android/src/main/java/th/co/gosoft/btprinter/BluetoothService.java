@@ -126,6 +126,7 @@ public class BluetoothService {
         // Start the thread to connect with the given device
         mConnectThread = new ConnectThread(device);
         mConnectThread.start();
+        mHandler.obtainMessage(BtprinterPlugin.MESSAGE_STATE_CHANGE, BluetoothService.STATE_CONNECTING).sendToTarget();
         setState(STATE_CONNECTING);
     }
 
@@ -159,13 +160,14 @@ public class BluetoothService {
         // Start the thread to manage the connection and perform transmissions
         mConnectedThread = new ConnectedThread(socket);
         mConnectedThread.start();
+        mHandler.obtainMessage(BtprinterPlugin.MESSAGE_STATE_CHANGE, BluetoothService.STATE_CONNECTED).sendToTarget();
 
         // Send the name of the connected device back to the UI Activity
-        Message msg = mHandler.obtainMessage(BtprinterPlugin.MESSAGE_DEVICE_NAME);
-        Bundle bundle = new Bundle();
-        bundle.putString(BtprinterPlugin.DEVICE_NAME, device.getName());
-        msg.setData(bundle);
-        mHandler.sendMessage(msg);
+//        Message msg = mHandler.obtainMessage(BtprinterPlugin.MESSAGE_DEVICE_NAME);
+//        Bundle bundle = new Bundle();
+//        bundle.putString(BtprinterPlugin.DEVICE_NAME, device.getName());
+//        msg.setData(bundle);
+//        mHandler.sendMessage(msg);
 
         setState(STATE_CONNECTED);
     }
@@ -174,6 +176,7 @@ public class BluetoothService {
      * Stop all threads
      */
     public synchronized void stop() {
+        mHandler.obtainMessage(BtprinterPlugin.MESSAGE_CONNECTION_LOST, -1).sendToTarget();
         if (DEBUG) Log.d(TAG, "stop");
         setState(STATE_NONE);
         if (mConnectThread != null) {
@@ -214,6 +217,7 @@ public class BluetoothService {
         setState(STATE_LISTEN);
 
         // Send a failure message back to the Activity
+        mHandler.obtainMessage(BtprinterPlugin.MESSAGE_UNABLE_CONNECT, -1).sendToTarget();
         Message msg = mHandler.obtainMessage(BtprinterPlugin.MESSAGE_TOAST);
         Bundle bundle = new Bundle();
 //        bundle.putString(BtprinterPlugin.TOAST, "Unable to connect device");
@@ -225,8 +229,8 @@ public class BluetoothService {
      * Indicate that the connection was lost and notify the UI Activity.
      */
     private void connectionLost() {
-        //setState(STATE_LISTEN);
-
+        setState(STATE_LISTEN);
+        mHandler.obtainMessage(BtprinterPlugin.MESSAGE_CONNECTION_LOST, -1).sendToTarget();
         // Send a failure message back to the Activity
 //        Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
 //        Bundle bundle = new Bundle();

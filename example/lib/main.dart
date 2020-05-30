@@ -14,24 +14,15 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String _result = 'failed';
-  Stream<int> _exampleStream;
-  List<int> _listPrinterId = [];
-  String _resultPrint = 'failed';
-  String _data = '';
-  bool _scanning = false;
+  String _resultConnect = 'failed';
+  Stream<int> _connectListener;
 
   @override
   void initState() {
     super.initState();
-    connectDevice('66:22:3E:0E:24:03');
-    _exampleStream = Btprinter.getBtPrinterStream_returnStream('functionA')
-      ..listen((result) {
-        print('result from test-returnStream=$result');
-        _listPrinterId.add(result);
-      });
   }
 
-  Future<void> connectDevice(String _address) async {
+  Future<void> setDevice(String _address) async {
     String result;
 
     try {
@@ -45,33 +36,45 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  void connect(){
+    setDevice('66:22:3E:0E:24:03');
+    _connectListener = Btprinter.getBtPrinterStream_returnStream('functionA')
+      ..listen((result) {
+        print('result from test-returnStream=$result');
+        if(result == 0){
+          printData('connected');
+        } else if(result == 7){
+          print('try again');
+        }
+      });
+  }
+
   Future<void> printData(String _data) async {
-    String resultPrint;
-
+    String result;
+    _data = _data + '\n';
     try {
-      resultPrint = await Btprinter.printString(_data);
+      result = await Btprinter.printString(_data);
     } on PlatformException {
-      resultPrint = "Failed";
-    }
 
-    setState(() {
-      _resultPrint = resultPrint;
-    });
+    }
   }
 
   Future<void> printBarcode(String _data) async {
-    String resultPrint;
-
+    String result;
     try {
-      resultPrint = await Btprinter.printBarcode(_data);
+      result = await Btprinter.printBarcode(_data);
     } on PlatformException {
-      resultPrint = "Failed";
     }
-
-    setState(() {
-      _resultPrint = resultPrint;
-    });
   }
+
+  Future<void> printQrCode(String _data) async {
+    String result;
+    try {
+      result = await Btprinter.printQrCode(_data);
+    } on PlatformException {
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +85,17 @@ class _MyAppState extends State<MyApp> {
         ),
         body: Column(
           children: <Widget>[
-            Text('Connect $_result'),
+            StreamBuilder(
+                stream: _connectListener,
+                builder: (context, snapshot) {
+                  return Text('${_resultConnect}');
+                }),
+            RaisedButton(
+              onPressed: () {
+                connect();
+              },
+              child: Text('connect'),
+            ),
             RaisedButton(
               onPressed: () {
                 printData('ทดสอบการพิมพ์ BT app');
@@ -94,7 +107,13 @@ class _MyAppState extends State<MyApp> {
                 printBarcode('12345678');
               },
               child: Text('print barcode'),
-            )
+            ),
+            RaisedButton(
+              onPressed: () {
+                printQrCode('111222');
+              },
+              child: Text('print qrcode'),
+            ),
           ],
         ),
       ),

@@ -39,6 +39,7 @@ import th.co.gosoft.command.sdk.PrinterCommand;
 public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCallHandler {
     /******************************************************************************************************/
     // Message types sent from the BluetoothService Handler
+    public static final int MESSAGE_STATE_CONNECTED = 0;
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_READ = 2;
     public static final int MESSAGE_WRITE = 3;
@@ -50,12 +51,12 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     // Key names received from the BluetoothService Handler
     public static final String DEVICE_NAME = "device_name";
     private static final String THAI = "CP874";
-    private String DEVICE_ADDRESS = "66:22:3E:0E:24:03";
+    private static String DEVICE_ADDRESS;
 
     // Name of the connected device
     private String mConnectedDeviceName = null;
-    private BluetoothAdapter mBluetoothAdapter = null;
-    private BluetoothService mService = null;
+    public static BluetoothAdapter mBluetoothAdapter = null;
+    public static BluetoothService mService = null;
     // Intent request codes
     private static final int REQUEST_ENABLE_BT = 2;
     // Member fields
@@ -81,7 +82,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         connectChannel.setStreamHandlerFactory(new StreamsChannel.StreamHandlerFactory() {
             @Override
             public EventChannel.StreamHandler create(Object arguments) {
-                return new ConnectionHandler(DEVICE_ADDRESS);
+                return new ConnectionHandler();
             }
         });
     }
@@ -111,7 +112,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
             String qrString = call.argument("qrString").toString();
             printQrCode(qrString);
             result.success("Success");
-        }else if (call.method.equals("discoveryNewDevices")) {
+        } else if (call.method.equals("discoveryNewDevices")) {
             initBluetooth();
             startDicoveryNewDevices();
             result.success("start discovery");
@@ -161,18 +162,12 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         }
     }
 
-    public static class ConnectionHandler extends Activity implements EventChannel.StreamHandler{
+    public static class ConnectionHandler extends Activity implements EventChannel.StreamHandler {
 
-        ConnectionHandler(String deviceAddress){
-            this.deviceAddress = deviceAddress;
-        }
-
-        private String deviceAddress;
         // Name of the connected device
-        private BluetoothAdapter mBluetoothAdapter;
-        private BluetoothService mService;
-        // Intent request codes
         private static final int REQUEST_ENABLE_BT = 2;
+
+        private EventChannel.EventSink eventSink;
 
         public void initBluetooth() {
             mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -196,14 +191,19 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         }
 
         private String onConnect() {
-            if (BluetoothAdapter.checkBluetoothAddress(this.deviceAddress)) {
-                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(this.deviceAddress);
+            if (BluetoothAdapter.checkBluetoothAddress(DEVICE_ADDRESS)) {
+                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(DEVICE_ADDRESS);
                 mService.connect(device);
 
                 return new String("Success");
             } else {
                 return new String("can't connect Devices");
             }
+        }
+
+        private String disconnect() {
+            mService.stop();
+            return new String("Success");
         }
 
         @SuppressLint("HandlerLeak")
@@ -214,20 +214,19 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
                     case MESSAGE_STATE_CHANGE:
                         switch (msg.arg1) {
                             case BluetoothService.STATE_CONNECTED:
-                                eventSink.success(connectState.connected);
+                                eventSink.success(BtprinterPlugin.MESSAGE_STATE_CONNECTED);
                                 break;
                             case BluetoothService.STATE_CONNECTING:
-                                eventSink.success(connectState.connecting);
+                                eventSink.success(BtprinterPlugin.MESSAGE_READ);
                                 break;
                             case BluetoothService.STATE_LISTEN:
-                                eventSink.success(connectState.listening);
                                 break;
                             case BluetoothService.STATE_NONE:
                                 break;
                         }
                         break;
                     case MESSAGE_WRITE:
-                        eventSink.success(connectState.writing);
+//                        eventSink.success(connectState.writing);
                         break;
                     case MESSAGE_READ:
                         break;
@@ -238,32 +237,30 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
                     case MESSAGE_TOAST:
                         break;
                     case MESSAGE_CONNECTION_LOST:
-                        eventSink.success(connectState.lost);
+                        eventSink.success(BtprinterPlugin.MESSAGE_CONNECTION_LOST);
                         break;
                     case MESSAGE_UNABLE_CONNECT:
-                        eventSink.success(connectState.failed);
+                        eventSink.success(BtprinterPlugin.MESSAGE_UNABLE_CONNECT);
                         break;
                 }
             }
         };
 
-        private EventChannel.EventSink eventSink;
-
-        enum connectState {
-            connected, connecting, listening, writing, lost, failed
-        }
-
         private final Handler handler = new Handler();
         private final Runnable runnable = new Runnable() {
             @Override
             public void run() {
+                eventSink.success(BtprinterPlugin.MESSAGE_READ);
                 initBluetooth();
+                disconnect();
                 onConnect();
+
             }
         };
 
         @Override
         public void onListen(Object arguments, EventChannel.EventSink events) {
+            this.eventSink = events;
             runnable.run();
         }
 
@@ -304,7 +301,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     }
 
     private void printEnBarcode(String str) {
-        byte[] code = PrinterCommand.getCodeBarCommand(str, 73, 3, 168, 1, 2);
+        byte[] code = PrinterCommand.getCodeBarCommand(str, 73, 3, 100, 1, 2);
         sendDataByte(new byte[]{0x1b, 0x61, 0x00});
         sendDataByte(code);
     }
@@ -316,7 +313,6 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     }
 
     private void printString(String msg) {
-        msg = msg + '\n';
         sendDataByte(PrinterCommand.POS_Print_Text(msg, THAI, 255, 0, 0, 0));
     }
 

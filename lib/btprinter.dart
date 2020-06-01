@@ -7,8 +7,9 @@ import 'package:streams_channel/streams_channel.dart';
 
 class Btprinter {
   static const MethodChannel _channel = const MethodChannel('btprinter');
-
   static StreamsChannel _connectChannel = StreamsChannel('btprinter_stream');
+  static StreamsChannel _zenpertConnectChannel =
+      StreamsChannel('zenpert_btprinter_stream');
 
   static Future<List<String>> discoveryPariedDevices() async {
     final List<dynamic> BTList =
@@ -26,7 +27,7 @@ class Btprinter {
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent("address", () => address);
     final String connectResult =
-        await _channel.invokeMethod('connectDevices', args);
+        await _channel.invokeMethod('setAddress', args);
     return connectResult;
   }
 
@@ -52,6 +53,44 @@ class Btprinter {
     return printResult;
   }
 
+  //=========================== Zenpert ========================================
+
+  static Future<String> zenpertPrintString(String msg) async {
+    Map<String, dynamic> args = <String, dynamic>{};
+    args.putIfAbsent("msg", () => msg);
+    final String printResult =
+        await _channel.invokeMethod('zenpertPrintText', args);
+    return printResult;
+  }
+
+  static Future<String> zenpertPrintBarcode(String msg) async {
+    Map<String, dynamic> args = <String, dynamic>{};
+    args.putIfAbsent("msg", () => msg);
+    final String printResult =
+        await _channel.invokeMethod('zenpertPrintBarcode', args);
+    return printResult;
+  }
+
+  static Future<String> zenpertPrintQrCode(String msg) async {
+    Map<String, dynamic> args = <String, dynamic>{};
+    args.putIfAbsent("msg", () => msg);
+    final String printResult =
+        await _channel.invokeMethod('zenpertPrintQrCode', args);
+    return printResult;
+  }
+
+  static Future<String> zenpertClosePort() async {
+    final String printResult = await _channel.invokeMethod('zenpertClose');
+    return printResult;
+  }
+
+  static Future<String> fujunClosePort() async {
+    final String printResult = await _channel.invokeMethod('fujunClose');
+    return printResult;
+  }
+
+  //=========================== Stream Connection ==============================
+
   static void getBtConnectStream(String argument) {
     print('begin:getBtPrinterStream');
     WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +102,24 @@ class Btprinter {
 
   static Stream<int> getBtPrinterStream_returnStream(String argument) {
     WidgetsFlutterBinding.ensureInitialized();
-    return _connectChannel.receiveBroadcastStream(argument).map<int>((v) => (v));
+    return _connectChannel
+        .receiveBroadcastStream(argument)
+        .map<int>((v) => (v));
+  }
+
+  static void getZenpertBtConnectStream(String argument) {
+    print('begin:getZenpertBtPrinterStream');
+    WidgetsFlutterBinding.ensureInitialized();
+    _zenpertConnectChannel.receiveBroadcastStream(argument).listen((i) {
+      print('the stream said $i');
+    });
+    print('after listening');
+  }
+
+  static Stream<int> getZenpertBtPrinterStream_returnStream(String argument) {
+    WidgetsFlutterBinding.ensureInitialized();
+    return _zenpertConnectChannel
+        .receiveBroadcastStream(argument)
+        .map<int>((v) => (v));
   }
 }

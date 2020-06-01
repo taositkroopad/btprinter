@@ -4,7 +4,18 @@ import 'package:flutter/services.dart';
 import 'package:btprinter/btprinter.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(TestApp());
+}
+
+class TestApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Welcome to Flutter',
+      debugShowCheckedModeBanner: false,
+      home: MyApp(),
+    );
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -36,17 +47,54 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void connect(){
+  void _onLoading() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Container(
+            padding: EdgeInsets.all(10.0),
+            child: new Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                new CircularProgressIndicator(),
+                Text('กำลังส่งเชื่อมต่อ')
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void connect() {
     setDevice('66:22:3E:0E:24:03');
     _connectListener = Btprinter.getBtPrinterStream_returnStream('functionA')
       ..listen((result) {
         print('result from test-returnStream=$result');
-        if(result == 0){
-          printData('connected');
-        } else if(result == 7){
+        if (result == 0) {
+          printData('เชื่อมต่อสำเร็จ');
+          Btprinter.fujunClosePort();
+        } else if (result == 7) {
           print('try again');
         }
       });
+  }
+
+  void connectZenpert() {
+    setDevice('DC:0D:30:F5:73:8A');
+    _connectListener =
+        Btprinter.getZenpertBtPrinterStream_returnStream('functionA')
+          ..listen((result) {
+            print('result from test-returnStream=$result');
+            if (result == 0) {
+              printZenpertText('เชื่อมต่อสำเร็จ');
+              Btprinter.zenpertClosePort();
+            } else if (result == 7) {
+              print('try again');
+            }
+          });
   }
 
   Future<void> printData(String _data) async {
@@ -54,27 +102,43 @@ class _MyAppState extends State<MyApp> {
     _data = _data + '\n';
     try {
       result = await Btprinter.printString(_data);
-    } on PlatformException {
-
-    }
+    } on PlatformException {}
   }
 
   Future<void> printBarcode(String _data) async {
     String result;
     try {
       result = await Btprinter.printBarcode(_data);
-    } on PlatformException {
-    }
+    } on PlatformException {}
   }
 
   Future<void> printQrCode(String _data) async {
     String result;
     try {
       result = await Btprinter.printQrCode(_data);
-    } on PlatformException {
-    }
+    } on PlatformException {}
   }
 
+  Future<void> printZenpertText(String _data) async {
+    String result;
+    try {
+      result = await Btprinter.zenpertPrintString(_data);
+    } on PlatformException {}
+  }
+
+  Future<void> printZenpertBarcode(String _data) async {
+    String result;
+    try {
+      result = await Btprinter.zenpertPrintBarcode(_data);
+    } on PlatformException {}
+  }
+
+  Future<void> printZenpertQrCode(String _data) async {
+    String result;
+    try {
+      result = await Btprinter.zenpertPrintQrCode(_data);
+    } on PlatformException {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,34 +149,26 @@ class _MyAppState extends State<MyApp> {
         ),
         body: Column(
           children: <Widget>[
-            StreamBuilder(
-                stream: _connectListener,
-                builder: (context, snapshot) {
-                  return Text('${_resultConnect}');
-                }),
-            RaisedButton(
-              onPressed: () {
-                connect();
-              },
-              child: Text('connect'),
+//            StreamBuilder(
+//                stream: _connectListener,
+//                builder: (context, snapshot) {
+//                  return Text('${_resultConnect}');
+//                }),
+            Center(
+              child: RaisedButton(
+                onPressed: () {
+                  connect();
+                },
+                child: Text('connect fujun'),
+              ),
             ),
-            RaisedButton(
-              onPressed: () {
-                printData('ทดสอบการพิมพ์ BT app');
-              },
-              child: Text('print string'),
-            ),
-            RaisedButton(
-              onPressed: () {
-                printBarcode('12345678');
-              },
-              child: Text('print barcode'),
-            ),
-            RaisedButton(
-              onPressed: () {
-                printQrCode('111222');
-              },
-              child: Text('print qrcode'),
+            Center(
+              child: RaisedButton(
+                onPressed: () {
+                  connectZenpert();
+                },
+                child: Text('connect zenpert'),
+              ),
             ),
           ],
         ),

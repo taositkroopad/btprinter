@@ -32,6 +32,7 @@ import app.loup.streams_channel.StreamsChannel;
 import th.co.gosoft.command.sdk.Command;
 import th.co.gosoft.command.sdk.PrintPicture;
 import th.co.gosoft.command.sdk.PrinterCommand;
+import com.example.tscdll.TSCActivity;
 
 /**
  * BtprinterPlugin
@@ -85,6 +86,14 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
                 return new ConnectionHandler();
             }
         });
+
+        final StreamsChannel zenpertConnectChannel = new StreamsChannel(flutterPluginBinding.getBinaryMessenger(), "zenpert_btprinter_stream");
+        zenpertConnectChannel.setStreamHandlerFactory(new StreamsChannel.StreamHandlerFactory() {
+            @Override
+            public EventChannel.StreamHandler create(Object arguments) {
+                return new ZenpertConnectionHandler();
+            }
+        });
     }
 
     public static void registerWith(Registrar registrar) {
@@ -94,7 +103,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-        if (call.method.equals("connectDevices")) {
+        if (call.method.equals("setAddress")) {
             String address = call.argument("address").toString();
             setDEVICE_ADDRESS(address);
 //            initBluetooth();
@@ -119,7 +128,25 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         } else if (call.method.equals("discoveryPariedDevices")) {
             List<String> pariedDevice = discoveryPariedDevice();
             result.success(pariedDevice);
-        } else {
+        } else if (call.method.equals("zenpertPrintText")) {
+            String msg = call.argument("msg").toString();
+            zenpertText(msg);
+            result.success("Success");
+        } else if (call.method.equals("zenpertPrintBarcode")) {
+            String msg = call.argument("msg").toString();
+            zenpertBarcode(msg);
+            result.success("Success");
+        } else if (call.method.equals("zenpertPrintQrCode")) {
+            String msg = call.argument("msg").toString();
+            zenpertQrcode(msg);
+            result.success("Success");
+        } else if (call.method.equals("zenpertClose")) {
+            zenpertClose();
+            result.success("Success");
+        } else if (call.method.equals("fujunClose")) {
+            onStopConnect();
+            result.success("Success");
+        } else{
             result.notImplemented();
         }
     }
@@ -270,6 +297,42 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         }
     }
 
+    public static class ZenpertConnectionHandler implements EventChannel.StreamHandler {
+
+        private final Handler handler = new Handler();
+        private final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+
+                try {
+                    String connection = TscDll.openport(DEVICE_ADDRESS);
+                    if (connection == "1") {
+                        eventSink.success(BtprinterPlugin.MESSAGE_STATE_CONNECTED);
+                    }else if (connection == "-1"){
+                        eventSink.success(BtprinterPlugin.MESSAGE_UNABLE_CONNECT);
+                    }
+                } catch (Throwable t) {
+                    eventSink.success(BtprinterPlugin.MESSAGE_UNABLE_CONNECT);
+                }
+
+                TscDll.clearbuffer();
+                BtprinterPlugin.initial(TscDll);
+            }
+        };
+
+        private EventChannel.EventSink eventSink;
+
+        @Override
+        public void onListen(Object o, final EventChannel.EventSink eventSink) {
+            this.eventSink = eventSink;
+            runnable.run();
+        }
+
+        @Override
+        public void onCancel(Object o) {
+            handler.removeCallbacks(runnable);
+        }
+    }
 //================================ Print command ===============================================
 
     private void sendDataString(String data) {
@@ -365,6 +428,11 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         }
     }
 
+    private String onStopConnect(){
+        mService.stop();
+        return new String("Success");
+    }
+
     private void startDicoveryNewDevices() {
         onInitBluetooth();
 
@@ -456,5 +524,67 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
         channel.setMethodCallHandler(null);
+    }
+
+    //====================================== Zenpert ===============================================
+
+    public static TSCActivity TscDll = new TSCActivity();
+
+    String newLine = "\r\n";
+    String FONT = "courmon.TTF";
+    int MAX_COLUMN = 31;
+    int MARGIN_X_TEXT = 30; //dot
+    int MARGIN_X_BARCODE = 30; //dot
+    int MARGIN_X_QRCODE = 80; //dot
+    int FONT_HEIGHT = 8;
+    int FONT_WIDTH = 6;
+
+    public void zenpertClose(){
+        TscDll.closeport(1000);
+    }
+
+    public static void initial(TSCActivity tscDll) {
+        String newLine = "\r\n";
+        String FONT = "courmon.TTF";
+
+        //Set Fronts
+        tscDll.sendcommand("DOWNLOAD F,\"AUTO.BAS\"" + newLine);
+        tscDll.sendcommand("COPY F,\"" + FONT + "\",\"" + FONT + "\"" + newLine);
+        tscDll.sendcommand("EOP" + newLine);
+        tscDll.sendcommand("AUTO.BAS" + newLine);
+
+        // Set Paper
+        tscDll.sendcommand("SIZE 58 mm, 5 mm" + newLine);
+        tscDll.sendcommand("Q0,0" + newLine);
+        tscDll.sendcommand("CLS" + newLine);
+        tscDll.sendcommand("SPEED 4" + newLine);
+        tscDll.sendcommand("DENSITY 12" + newLine);
+        tscDll.sendcommand("CODEPAGE UTF-8" + newLine);
+        tscDll.sendcommand("SET TEAR ON" + newLine);
+    }
+
+    private void copyFontToFlashMemory(TSCActivity tscDll) {
+        tscDll.sendcommand("DOWNLOAD F,\"AUTO.BAS\"" + newLine);
+        tscDll.sendcommand("COPY F,\"" + FONT + "\",\"" + FONT + "\"" + newLine);
+        tscDll.sendcommand("EOP" + newLine);
+        tscDll.sendcommand("AUTO.BAS" + newLine);
+    }
+
+    private void zenpertText(String text) {
+        TscDll.sendcommand("TEXT 32, 0,\"" + FONT + "\",0,6,8,\"" + text + "\"\r\n");
+        TscDll.printlabel(1, 1);
+        TscDll.clearbuffer();
+    }
+
+    private void zenpertBarcode(String barcode) {
+        TscDll.sendcommand("BARCODE 41,0,\"128\",80,2,0,3,1,0,\""+barcode+"\""+newLine+"");
+        TscDll.printlabel(1, 1);
+        TscDll.clearbuffer();
+    }
+
+    private void zenpertQrcode(String qrCode){
+        TscDll.sendcommand("QRCODE 80,0,H,5,A,0,M2,S7,\""+qrCode+"\""+newLine+"");
+        TscDll.printlabel(1, 1);
+        TscDll.clearbuffer();
     }
 }

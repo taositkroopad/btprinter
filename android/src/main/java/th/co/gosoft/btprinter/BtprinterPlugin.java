@@ -364,7 +364,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     }
 
     private void printEnBarcode(String str) {
-        byte[] code = PrinterCommand.getCodeBarCommand(str, 73, 3, 100, 1, 2);
+        byte[] code = PrinterCommand.getCodeBarCommand(str, 67, 4, 80, 0, 2);
         sendDataByte(new byte[]{0x1b, 0x61, 0x00});
         sendDataByte(code);
     }

@@ -75,6 +75,7 @@ class _MyAppState extends State<MyApp> {
         print('result from test-returnStream=$result');
         if (result == 0) {
           printData('เชื่อมต่อสำเร็จ');
+          printBarcode('2800099058214');
           Btprinter.fujunClosePort();
         } else if (result == 7) {
           print('try again');

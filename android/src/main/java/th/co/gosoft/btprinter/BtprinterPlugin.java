@@ -32,6 +32,7 @@ import app.loup.streams_channel.StreamsChannel;
 import th.co.gosoft.command.sdk.Command;
 import th.co.gosoft.command.sdk.PrintPicture;
 import th.co.gosoft.command.sdk.PrinterCommand;
+
 import com.example.tscdll.TSCActivity;
 
 /**
@@ -146,7 +147,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         } else if (call.method.equals("fujunClose")) {
             onStopConnect();
             result.success("Success");
-        } else{
+        } else {
             result.notImplemented();
         }
     }
@@ -277,11 +278,14 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         private final Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                eventSink.success(BtprinterPlugin.MESSAGE_READ);
-                initBluetooth();
-                disconnect();
-                onConnect();
-
+                try {
+                    eventSink.success(BtprinterPlugin.MESSAGE_READ);
+                    initBluetooth();
+                    disconnect();
+                    onConnect();
+                } catch (Throwable t) {
+                    eventSink.success(BtprinterPlugin.MESSAGE_UNABLE_CONNECT);
+                }
             }
         };
 
@@ -308,7 +312,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
                     String connection = TscDll.openport(DEVICE_ADDRESS);
                     if (connection == "1") {
                         eventSink.success(BtprinterPlugin.MESSAGE_STATE_CONNECTED);
-                    }else if (connection == "-1"){
+                    } else if (connection == "-1") {
                         eventSink.success(BtprinterPlugin.MESSAGE_UNABLE_CONNECT);
                     }
                 } catch (Throwable t) {
@@ -428,7 +432,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         }
     }
 
-    private String onStopConnect(){
+    private String onStopConnect() {
         mService.stop();
         return new String("Success");
     }
@@ -539,7 +543,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     int FONT_HEIGHT = 8;
     int FONT_WIDTH = 6;
 
-    public void zenpertClose(){
+    public void zenpertClose() {
         TscDll.closeport(1000);
     }
 
@@ -577,13 +581,13 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     }
 
     private void zenpertBarcode(String barcode) {
-        TscDll.sendcommand("BARCODE 41,0,\"128\",80,2,0,3,1,0,\""+barcode+"\""+newLine+"");
+        TscDll.sendcommand("BARCODE 41,0,\"128\",80,2,0,3,1,0,\"" + barcode + "\"" + newLine + "");
         TscDll.printlabel(1, 1);
         TscDll.clearbuffer();
     }
 
-    private void zenpertQrcode(String qrCode){
-        TscDll.sendcommand("QRCODE 80,0,H,5,A,0,M2,S7,\""+qrCode+"\""+newLine+"");
+    private void zenpertQrcode(String qrCode) {
+        TscDll.sendcommand("QRCODE 80,0,H,5,A,0,M2,S7,\"" + qrCode + "\"" + newLine + "");
         TscDll.printlabel(1, 1);
         TscDll.clearbuffer();
     }

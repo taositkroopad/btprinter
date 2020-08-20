@@ -527,7 +527,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
 
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
-        channel.setMethodCallHandler(null);
+//        channel.setMethodCallHandler(null);
     }
 
     //====================================== Zenpert ===============================================

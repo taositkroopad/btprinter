@@ -139,8 +139,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
             result.success("Success");
         } else if (call.method.equals("zenpertPrintQrCode")) {
             String msg = call.argument("msg").toString();
-            // zenpertQrcode(msg);
-            zenpertQrcodeAdjustSize(msg);
+            zenpertQrcode(msg);
             result.success("Success");
         } else if (call.method.equals("zenpertClose")) {
             zenpertClose();

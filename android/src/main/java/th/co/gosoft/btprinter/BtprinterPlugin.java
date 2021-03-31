@@ -594,7 +594,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     }
 
     private void zenpertQrcodeAdjustSize(String qrCode) {
-        TscDll.sendcommand("QRCODE 80,0,H,1,A,0,\"" + qrCode + "\"" + newLine + "");
+        TscDll.sendcommand("QRCODE 120,0,H,4,A,0,M2,S7,\"" + qrCode + "\"" + newLine + "");
         TscDll.printlabel(1, 1);
         TscDll.clearbuffer();
     }

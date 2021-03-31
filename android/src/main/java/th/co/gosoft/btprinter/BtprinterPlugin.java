@@ -587,7 +587,7 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
     }
 
     private void zenpertQrcode(String qrCode) {
-        TscDll.sendcommand("QRCODE 160,0,H,10,A,0,M2,S7,X100,\"" + qrCode + "\"" + newLine + "");
+        TscDll.sendcommand("QRCODE 80,0,H,5,A,0,M2,S7,\"" + qrCode + "\"" + newLine + "");
         TscDll.printlabel(1, 1);
         TscDll.clearbuffer();
     }

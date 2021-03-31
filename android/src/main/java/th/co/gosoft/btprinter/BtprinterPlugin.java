@@ -139,7 +139,8 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
             result.success("Success");
         } else if (call.method.equals("zenpertPrintQrCode")) {
             String msg = call.argument("msg").toString();
-            zenpertQrcode(msg);
+            // zenpertQrcode(msg);
+            zenpertQrcodeAdjustSize(msg);
             result.success("Success");
         } else if (call.method.equals("zenpertClose")) {
             zenpertClose();
@@ -591,4 +592,11 @@ public class BtprinterPlugin extends Activity implements FlutterPlugin, MethodCa
         TscDll.printlabel(1, 1);
         TscDll.clearbuffer();
     }
+
+    private void zenpertQrcodeAdjustSize(String qrCode) {
+        TscDll.sendcommand("QRCODE 160,0,H,10,A,0,M2,S7,X100,\"" + qrCode + "\"" + newLine + "");
+        TscDll.printlabel(1, 1);
+        TscDll.clearbuffer();
+    }
+
 }
